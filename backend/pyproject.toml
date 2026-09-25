@@ -1,0 +1,117 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "littleagent"
+version = "0.1.0"
+description = "A little AI agent for daily chatting."
+license = "MIT"
+requires-python = ">=3.11"
+authors = [{ name = "LittleAgent" }]
+keywords = ["agent", "llm", "chat"]
+classifiers = [
+    "Private :: Do Not Upload",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+
+# Core dependencies: multi-provider support comes from LangChain v1, so there is
+# no hand-rolled abstraction layer. LangChain ships one package per provider, so
+# "supporting another provider" means adding one langchain-<provider> package
+# without touching the core at all.
+# Floors express the lowest version that provides what we need, not simply the
+# newest release at the time of writing: the langchain family must be >=1 because
+# create_agent only exists in v1. Keeping floors low means a mirror that lags
+# behind upstream still resolves, while the newest matching version still wins.
+dependencies = [
+    "langchain>=1.0",           # create_agent plus the messages/tools namespaces (v1 only)
+    "langgraph>=1.2.0",         # persistence, streaming, human-in-the-loop (v1 only)
+    "fastapi>=0.115",           # HTTP layer for the frontend
+    "uvicorn[standard]>=0.30",  # ASGI server; [standard] adds httptools/uvloop, needed for SSE
+    "pydantic-settings>=2.2",   # read configuration such as API keys from .env
+    "rich>=13.7",               # CLI output
+    # httpx and pydantic arrive transitively via langchain, so they are not declared here
+]
+
+# Install providers on demand: pip install -e ".[deepseek]" / ".[all]" / ".[dev]"
+# The langchain-* provider packages ship type information and are only imported
+# when actually used, so a provider that is not installed cannot break startup.
+[project.optional-dependencies]
+openai = ["langchain-openai>=1.0"]
+anthropic = ["langchain-anthropic>=1.0"]
+deepseek = ["langchain-deepseek>=1.0"]
+all = [
+    "langchain-openai>=1.0",
+    "langchain-anthropic>=1.0",
+    "langchain-deepseek>=1.0",
+]
+# This dev extra mirrors the [dependency-groups] entry below, minus the provider
+# packages. The duplication is deliberate: `pip install -e ".[dev]"` is the most
+# convenient form, while dependency-groups is the PEP 735 standard that uv reads
+# natively. Version bumps must be applied to both places.
+dev = [
+    "langchain-openai>=1.0",
+    "langchain-anthropic>=1.0",
+    "langchain-deepseek>=1.0",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.6",
+    "mypy>=1.10",
+]
+
+# PEP 735 dependency group, used by `pip install --group dev` and natively by uv.
+# Providers are declared in the dev extra above rather than here, because
+# `pip install -e ".[dev]"` cannot see this group.
+[dependency-groups]
+dev = [
+    "langchain-deepseek>=1.0",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.6",
+    "mypy>=1.10",
+]
+
+[project.scripts]
+littleagent = "littleagent.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/littleagent"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The provider layer is asynchronous; without this, async tests are skipped silently.
+asyncio_mode = "auto"
+# pytest-asyncio warns about a deprecation when this is left unset (issue #924).
+asyncio_default_fixture_loop_scope = "function"
+# Agent code easily drops an await; turn that hazard into a test failure.
+filterwarnings = ["error::RuntimeWarning"]
+# Exclude tests that hit the real API by default, so nobody burns quota by accident.
+addopts = '-m "not live"'
+markers = [
+    "live: hits the real model API, costing money and requiring network access; not run by default",
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src", "tests"]
+
+# The JS frontend is managed separately; see frontend/package.json at the repo root.
+# It deliberately sits beside backend/ rather than inside the Python package: a
+# hatch build hook must not shell out to npm/pnpm, because the two toolchains own
+# their own lockfiles and coupling them makes Python builds depend on a Node setup.
