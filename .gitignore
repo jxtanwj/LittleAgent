@@ -28,6 +28,7 @@ coverage/
 
 # ---- 缓存 ----
 .pytest_cache/
+pytest-cache-files-*/
 .ruff_cache/
 .mypy_cache/
 .tox/
