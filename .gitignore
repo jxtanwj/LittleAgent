@@ -1,0 +1,61 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+/dist/
+/build/
+*.so
+
+# ---- Node / JS / TS ----
+node_modules/
+.next/
+.nuxt/
+.output/
+.turbo/
+.parcel-cache/
+.eslintcache
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+.pnpm-store/
+coverage/
+.nyc_output/
+
+# ---- 缓存 ----
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.tox/
+.nox/
+.coverage
+htmlcov/
+.python-version
+.ipynb_checkpoints/
+
+# ---- 机密（保命）----
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+
+# ---- agent 产物 ----
+traces/
+outputs/
+*.sqlite
+.cache/
+
+# ---- 日志 ----
+*.log
+
+# ---- 编辑器 / 系统 ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
