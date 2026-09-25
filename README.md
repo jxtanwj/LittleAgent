@@ -1,2 +1,2 @@
 # LittleAgent
-A litle AI agent for daily chatting.
+A little AI agent for daily chatting.
