@@ -1,6 +1,6 @@
 """Unit tests for the tool functions: pure functions, no model and no network."""
 
-from littleagent.main import get_weather
+from littleagent.core.tools import get_weather
 
 
 def test_get_weather_returns_city_in_result() -> None:
