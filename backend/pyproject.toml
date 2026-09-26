@@ -33,7 +33,7 @@ dependencies = [
     "fastapi>=0.115",           # HTTP layer for the frontend
     "uvicorn[standard]>=0.30",  # ASGI server; [standard] adds httptools/uvloop, needed for SSE
     "pydantic-settings>=2.2",   # read configuration such as API keys from .env
-    "rich>=13.7",               # CLI output
+    "rich>=13.7",               # terminal rendering
     # httpx and pydantic arrive transitively via langchain, so they are not declared here
 ]
 
