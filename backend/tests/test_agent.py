@@ -14,7 +14,8 @@ import pytest
 from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from littleagent.main import get_weather, main
+from littleagent.core.tools import get_weather
+from littleagent.main import main
 
 CITY = "San Francisco"
 
