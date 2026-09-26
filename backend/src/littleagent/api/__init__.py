@@ -1,0 +1,1 @@
+"""HTTP layer: the FastAPI app, its routes, and the client wire contract."""
