@@ -29,10 +29,19 @@ LittleAgent
 |   |       |       routes.py    the SSE endpoint and chunk translation
 |   |       |       schemas.py   the wire contract: request and events
 |   |       |
-|   |       \---core             the agent kernel; imports nothing above it
+|   |       +---core             the agent kernel; imports nothing above it
+|   |       |       __init__.py
+|   |       |       agent.py     model + tools + checkpointer, built once
+|   |       |       tools.py     the tools the agent can call
+|   |       |
+|   |       +---memory           long-term memory; imports nothing above it
+|   |       |       __init__.py
+|   |       |       retriever.py keyword scoring over stored memories
+|   |       |       storage.py   the JSON-backed store
+|   |       |
+|   |       \---tools            memory tools; not registered with the agent
 |   |               __init__.py
-|   |               agent.py     model + tools + checkpointer, built once
-|   |               tools.py     the tools the agent can call
+|   |               memory.py    search_memory and save_memory
 |   |
 |   +---scripts                  run from the backend directory
 |   |       __init__.py
