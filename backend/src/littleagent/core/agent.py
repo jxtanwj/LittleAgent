@@ -16,7 +16,7 @@ from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.memory import InMemorySaver
 
-from littleagent.core.tools import get_weather
+from littleagent.core.tools import get_weather, save_memory, search_memory
 
 # The assembled agent, built once on first use and then reused. Caching matters
 # for correctness, not just speed: the checkpointer handed to create_agent is
@@ -48,7 +48,7 @@ def build_agent():
         )
         _agent = create_agent(
             model=model,
-            tools=[get_weather],
+            tools=[get_weather, search_memory, save_memory],
             system_prompt=SYSTEM_PROMPT,
             checkpointer=InMemorySaver(),
         )
