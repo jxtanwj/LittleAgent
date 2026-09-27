@@ -6,6 +6,7 @@ core must never import them. Crossing that line is how a kernel turns into a
 junk drawer and how the agent starts requiring a web server to be constructed.
 
 Contains:
+    memory  the long-term store and the keyword search over it
     tools   the callable tools the agent can use
     agent   assembly of the model, tools and checkpointer, cached for the process
 """
