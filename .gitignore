@@ -60,3 +60,6 @@ outputs/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# 长期记忆是运行时用户数据，含用户个人信息，不进版本库
+backend/data/
