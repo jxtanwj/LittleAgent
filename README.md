@@ -35,6 +35,9 @@ LittleAgent
 |   |               memory.py    the long-term store and keyword search
 |   |               tools.py     the tools the agent can call
 |   |
+|   +---docs                     notes for maintainers
+|   |       memory.md            the long-term memory module
+|   |
 |   +---scripts                  run from the backend directory
 |   |       __init__.py
 |   |       run_all.py           every check in one command
@@ -45,6 +48,7 @@ LittleAgent
 |           conftest.py          fakes and chunk builders
 |           test_agent.py        agent behaviour, fake model
 |           test_api.py          the endpoint and chunk shapes
+|           test_memory.py       the long-term store and its tools
 |           test_tools.py        the tools, as plain functions
 |           test_translation.py  chunk -> event translation
 |
@@ -120,8 +124,10 @@ python -m littleagent.main
 
 ## API
 
-`POST /chat/stream` takes `{"message": str, "thread_id": str}` and answers with
-`text/event-stream`. Every frame is `data: <json>` followed by a blank line.
+`POST /chat/stream` takes `{"message": str, "thread_id": str, "user_id": str}`
+and answers with `text/event-stream`. Every frame is `data: <json>` followed by a
+blank line. `user_id` is optional and selects whose long-term memories the turn
+can read and write; without it everybody shares one scope.
 
 | Event | Meaning |
 | --- | --- |
@@ -140,6 +146,22 @@ single source of truth for both the server and every client. `GET /openapi.json`
 exposes the same information in a form a TypeScript client can be generated
 from.
 
+## Long-term memory
+
+The agent can save, search, update and delete memories. They live in one JSON
+file outside the package and outside version control, at
+`$LITTLEAGENT_DATA_DIR` (default `~/.littleagent/`); set that variable to
+`backend/data` to keep the file in the working tree instead.
+
+Writes are serialised by an in-process lock and land through an atomic replace,
+so a crash cannot leave a half-written file behind, and a file that cannot be
+read is backed up rather than overwritten. That protection covers a single
+process only - do not point several workers at the same data file.
+
+Memories are scoped by `user_id`, and the tools only ever see their own scope.
+The design, the retrieval algorithm and the remaining limits are written up in
+[`backend/docs/memory.md`](backend/docs/memory.md).
+
 ## Tests
 
 ```powershell
@@ -151,7 +173,7 @@ python -m scripts.run_all --offline-only   # fast, no network, no API key
 `run_all` reports each layer separately, because each proves something the
 others cannot:
 
-1. **offline pytest** - 39 tests, no network. The bulk of the suite.
+1. **offline pytest** - 116 tests, no network. The bulk of the suite.
 2. **live pytest** - one real model call, marked `live` and excluded by default.
 3. **chunk shapes** - dumps what a real provider actually streams.
 4. **streaming over HTTP** - starts a server, streams a turn, checks the timing.
