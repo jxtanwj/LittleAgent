@@ -23,6 +23,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 from littleagent.api import routes
 from littleagent.api.schemas import ChatRequest
 from littleagent.core import agent as core_agent
+from littleagent.core.memory import DEFAULT_SCOPE
 from tests.conftest import (
     FakeToolCallingAgent,
     message_chunk,
@@ -329,3 +330,61 @@ def test_request_schema_requires_a_thread_id() -> None:
     """A defaulted thread_id would let two clients silently share one history."""
     with pytest.raises(Exception):
         ChatRequest(message="hi")
+
+
+class ConfigRecordingAgent:
+    """Replays chunks and keeps the run config it was handed."""
+
+    def __init__(self, chunks: list[dict[str, Any]]) -> None:
+        self._chunks = chunks
+        self.config: dict[str, Any] | None = None
+
+    async def astream(self, *args: Any, **kwargs: Any) -> AsyncIterator[dict[str, Any]]:
+        self.config = kwargs.get("config")
+        for chunk in self._chunks:
+            yield chunk
+
+
+def _config_from_request(
+    monkeypatch: pytest.MonkeyPatch, body: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Run one request through the real endpoint and return the agent's run config."""
+    recorder = ConfigRecordingAgent([message_chunk("hi")])
+    monkeypatch.setattr(core_agent, "build_agent", lambda: recorder)
+    app = FastAPI()
+    app.include_router(routes.router)
+
+    with TestClient(app) as client:
+        client.post("/chat/stream", json=body)
+
+    return recorder.config
+
+
+def test_user_id_reaches_the_agent_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The memory scope travels in the run config. A dropped field would put every
+    user back into the shared global memory, and nothing else would notice."""
+    config = _config_from_request(
+        monkeypatch, {"message": "hi", "thread_id": "t1", "user_id": "alice"}
+    )
+
+    assert config == {"configurable": {"thread_id": "t1", "user_id": "alice"}}
+
+
+def test_user_id_defaults_to_the_shared_scope(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Older clients do not send the field, and keep the old shared behaviour."""
+    config = _config_from_request(monkeypatch, {"message": "hi", "thread_id": "t1"})
+
+    assert config is not None
+    assert config["configurable"]["user_id"] == DEFAULT_SCOPE
+
+
+def test_request_schema_keeps_user_ids_to_a_safe_charset() -> None:
+    """The value ends up in log lines and in the data file, so whitespace and
+    control characters are rejected at the edge rather than stored."""
+    assert ChatRequest(message="hi", thread_id="t1").user_id == DEFAULT_SCOPE
+    assert ChatRequest(message="hi", thread_id="t1", user_id="alice@example.com").user_id == (
+        "alice@example.com"
+    )
+
+    with pytest.raises(Exception):
+        ChatRequest(message="hi", thread_id="t1", user_id="a b")

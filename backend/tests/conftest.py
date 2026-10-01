@@ -6,12 +6,15 @@ API key, cost nothing, and produce repeatable results.
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, AsyncIterator, Callable, Mapping, Sequence
 
 import pytest
 from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
 from langchain_core.messages import AIMessage, BaseMessage
+
+from littleagent.core import memory
 
 
 class FakeToolCallingModel(FakeMessagesListChatModel):
@@ -88,6 +91,18 @@ def message_chunk(
 def update_chunk(node: str, messages: Sequence[BaseMessage]) -> dict[str, Any]:
     """Build one "updates" chunk, whose shape is {node: {"messages": [...]}}."""
     return {"type": "updates", "data": {node: {"messages": list(messages)}}}
+
+
+@pytest.fixture(autouse=True)
+def memory_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Point the memory store at a throwaway file for every test.
+
+    Autouse on purpose: memory.py writes to a module-level path, so a test that
+    forgot to redirect it would overwrite the developer's real memories instead
+    of failing loudly. Autouse in conftest rather than in one module, because
+    both the memory tests and the agent-path tests need it.
+    """
+    monkeypatch.setattr(memory, "MEMORY_FILE", tmp_path / "memories.json")
 
 
 @pytest.fixture

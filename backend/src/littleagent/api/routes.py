@@ -179,8 +179,9 @@ async def translate_events(req: ChatRequest) -> AsyncIterator[str]:
         # Reached through the module, not a bound import, so that a test
         # replacing core.agent.build_agent is actually observed.
         agent = core_agent.build_agent()
-        # thread_id selects which conversation the checkpointer appends to.
-        config = core_agent.conversation_config(req.thread_id)
+        # thread_id selects which conversation the checkpointer appends to;
+        # user_id selects whose memories the tools read and write.
+        config = core_agent.conversation_config(req.thread_id, req.user_id)
 
         # Two stream modes are needed because they carry different things:
         # "messages" yields incremental tokens (the typing effect and the tool

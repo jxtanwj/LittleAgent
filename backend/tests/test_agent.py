@@ -14,7 +14,8 @@ import pytest
 from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from littleagent.core.tools import get_weather
+from littleagent.core import memory
+from littleagent.core.tools import get_weather, save_memory
 from littleagent.main import main
 
 CITY = "San Francisco"
@@ -74,6 +75,33 @@ def test_agent_executes_tool_exactly_once(
     result = agent.invoke({"messages": [HumanMessage(content="Weather in Beijing?")]})
 
     assert len([m for m in result["messages"] if isinstance(m, ToolMessage)]) == 1
+
+
+def test_agent_saves_memories_into_the_callers_scope(
+    fake_model: Callable[..., object],
+) -> None:
+    """The one test that catches a broken config injection.
+
+    A tool whose config parameter is annotated `RunnableConfig | None` is not
+    injected at all: the run then dies the first time the model calls it, and
+    the memory is never written. Unit tests hand a config over themselves and
+    never see that, so only a run through create_agent can.
+    """
+    tool_call = AIMessage(
+        content="",
+        tool_calls=[
+            {"name": "save_memory", "args": {"content": "The user likes tea"}, "id": "call_1"}
+        ],
+    )
+    agent = create_agent(model=fake_model([tool_call, "noted"]), tools=[save_memory])
+
+    agent.invoke(
+        {"messages": [HumanMessage(content="remember that I like tea")]},
+        config={"configurable": {"thread_id": "t1", "user_id": "alice"}},
+    )
+
+    stored = memory.load_memories()
+    assert [mem["scope"] for mem in stored] == ["alice"]
 
 
 @pytest.mark.live
