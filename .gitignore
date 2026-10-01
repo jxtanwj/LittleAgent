@@ -61,5 +61,8 @@ outputs/
 .DS_Store
 Thumbs.db
 
-# 长期记忆是运行时用户数据，含用户个人信息，不进版本库
+# 长期记忆是运行时用户数据，含用户个人信息，绝不进版本库。
+# 默认位置已经在仓库外（~/.littleagent/），但开发时可以用
+# LITTLEAGENT_DATA_DIR=backend/data 把数据放回这里，所以这条要留着：
+# 删掉它，记忆文件就会以未跟踪文件的形式出现，随手 git add . 就提交上去了。
 backend/data/
